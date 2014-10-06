@@ -16,7 +16,7 @@
 #original author: xiaolu
 #heavily modified by: Modding.MyMind
 
-set -x # for debugging
+#set -x # for debugging
 
 trap "clean" 2 3 4
 workdir=$(pwd)
@@ -180,7 +180,7 @@ if [ ! -z $mkboot_from_dir ]; then
 			ramdisk_size=$($busybox stat -c "%s" $ramdisk)
 		fi
 	else
-		$grep ROOTFS ./temp.* 2>/dev/null
+		$grep ROOTFS ./temp.* &>/dev/null
 		rootfs=$?
 		if [ $rootfs -eq 0 ]; then
 			if [ $compression_type == "gzip" ]; then
@@ -193,7 +193,7 @@ if [ ! -z $mkboot_from_dir ]; then
 				$busybox rm -f ./new_ramdisk.$compression_ext
 			fi
 		fi
-		$grep ROOTFS ./temp.* 2>/dev/null
+		$grep ROOTFS ./temp.* &>/dev/null
 		rootfs=$?
 		if [ $rootfs -eq 0 ]; then
 			if [ $compression_type == "LZ4" ]; then
@@ -206,7 +206,7 @@ if [ ! -z $mkboot_from_dir ]; then
 				$busybox rm -f ./new_ramdisk.$compression_ext
 			fi
 		fi
-		$grep RECOVERY ./temp.* 2>/dev/null
+		$grep RECOVERY ./temp.* &>/dev/null
 		rootfs=$?
 		if [ $rootfs -eq 0 ]; then
 			if [ $compression_type == "gzip" ]; then
@@ -219,7 +219,7 @@ if [ ! -z $mkboot_from_dir ]; then
 				$busybox rm -f ./new_ramdisk.$compression_ext
 			fi
 		fi
-		$grep RECOVERY ./temp.* 2>/dev/null
+		$grep RECOVERY ./temp.* &>/dev/null
 		rootfs=$?
 		if [ $rootfs -eq 0 ]; then
 			if [ $compression_type == "lz4" ]; then
