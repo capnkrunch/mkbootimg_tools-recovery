@@ -180,9 +180,9 @@ if [ ! -z $mkboot_from_dir ]; then
 			ramdisk_size=$($busybox stat -c "%s" $ramdisk)
 		fi
 	else
-		$grep ROOTFS ./tekramdisk.* 2>/dev/null
+		$grep ROOTFS ./temp.* &>/dev/null
 		rootfs=$?
-		if [ $rootfs -eq 1 ]; then
+		if [ $rootfs -eq 0 ]; then
 			if [ $compression_type == "gzip" ]; then
 				# MediaTek GZIP / Boot Header
 				$mkbootfs $ramdisk | $compression_repack > new_ramdisk.$compression_ext
@@ -193,9 +193,9 @@ if [ ! -z $mkboot_from_dir ]; then
 				$busybox rm -f ./new_ramdisk.$compression_ext
 			fi
 		fi
-		$grep RECOVERY ./tekramdisk.* 2>/dev/null
+		$grep RECOVERY ./temp.* &>/dev/null
 		rootfs=$?
-		if [ $rootfs -eq 1 ]; then
+		if [ $rootfs -eq 0 ]; then
 			if [ $compression_type == "lz4" ]; then
 				# MediaTek LZ4 / Recovery Header
 				$mkbootfs $ramdisk | $compression_repack > new_ramdisk.$compression_ext
