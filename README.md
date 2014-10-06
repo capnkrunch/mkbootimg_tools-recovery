@@ -1,64 +1,60 @@
-mkbootimg_tools
-===============
+Original Source Modified By:
+Modding.MyMind XDA \
+ModdingMyMind AF
 
-### Unpack and repack boot.img,support dtb(dt.img):
-		xiaolu@xiaolu-ubuntu64:~/e330s$ mkboot recoveryksuamg5.img ksuamg
-		Unpack & decompress recoveryksuamg5.img to ksuamg
-		  kernel         : /home/xiaolu/work/initramfs/s4/e330s/ksuamg5/zImage
-		  ramdisk        : /home/xiaolu/work/initramfs/s4/e330s/ksuamg5/ramdisk.gz
-		  page_size      : 2048
-		  base_addr      : 0x00000000
-		  kernel size    : 6911360
-		  kernel_addr    : 0x00008000
-		  ramdisk_size   : 2685222
-		  ramdisk_addr   : 0x02000000
-		  second_size    : 0
-		  second_addr    : 0x00f00000
-		  dtb_size       : 1427456
-		  tags_addr      : 0x01e00000
-		  cmdline        : console=null androidboot.hardware=qcom user_debug=31 maxcpus=2 msm_rtb.filter=0x3F
-		Unpack completed.
+Built to be used on Arm devices.
 
-		xiaolu@xiaolu-ubuntu64:~/e330s$ mkboot ksuamg5 recovery.img
-		mkbootimg from ksuamg5/img_info.
-		  kernel         : /home/xiaolu/work/initramfs/s4/e330s/ksuamg5/zImage
-		  ramdisk        : /home/xiaolu/work/initramfs/s4/e330s/ksuamg5/new_ramdisk.gz
-		  page_size      : 
-		  base_addr      : 0x00000000
-		  kernel size    : 6911360
-		  kernel_addr    : 0x00008000
-		  ramdisk_size   : 2685222
-		  ramdisk_addr   : 0x02000000
-		  second_size    : 
-		  second_addr    : 
-		  dtb_size       : 1427456
-		  dtb_img        : dt.img
-		  tags_addr      : 0x01e00000
-		  cmdline        : console=null androidboot.hardware=qcom user_debug=31 maxcpus=2 msm_rtb.filter=0x3F
-		Kernel size: 6911360, new ramdisk size: 3416778, recovery.img: 11759616.
-		recovery.img has been created.
-		...
+Move the bash binary to /system/xbin.
+The rest must remain in the project folder.
 
-### Create a dt.img:
-		xiaolu@xiaolu-ubuntu64:/media/diskd/kernel/SHV-E330S_JB_Opensource/Kernel$ scripts/dtbTool -s 2048 -o arch/arm/boot/dt.img -p scripts/dtc/ arch/arm/boot/
-		DTB combiner:
-		  Input directory: '/media/diskd/kernel/SHV-E330S_JB_Opensource/Kernel/arch/arm/boot/'
-		  Output file: '/media/diskd/kernel/SHV-E330S_JB_Opensource/Kernel/arch/arm/boot/dt.img'
-		Found file: msm8974-sec-ks01-r03.dtb ... chipset: 2114015745, platform: 3, rev: 0
-		Found file: msm8974-sec-ks01-r07.dtb ... chipset: 2114015745, platform: 7, rev: 0
-		Found file: msm8974-sec-ks01-r06.dtb ... chipset: 2114015745, platform: 6, rev: 0
-		Found file: msm8974-sec-ks01-r04.dtb ... chipset: 2114015745, platform: 4, rev: 0
-		Found file: msm8974-sec-ks01-r11.dtb ... chipset: 2114015745, platform: 11, rev: 0
-		Found file: msm8974-sec-ks01-r02.dtb ... chipset: 2114015745, platform: 2, rev: 0
-		Found file: msm8974-sec-ks01-r00.dtb ... chipset: 2114015745, platform: 0, rev: 0
-		Found file: msm8974-sec-ks01-r05.dtb ... chipset: 2114015745, platform: 5, rev: 0
-		Found file: msm8974-sec-ks01-r01.dtb ... chipset: 2114015745, platform: 1, rev: 0
-		=> Found 9 unique DTB(s)
+### Unpack Boot.img or Recovery.img:
+	root@android:/data/local/tmp/mkbootimg_tool/ARM # ./mkboot recovery_stock.img recoveryfolder
 
-		Generating master DTB... completed
+	Unpack & decompress recovery_stock.img to recoveryfolder
 
+	****** WARNING ******* WARNING ******* WARNING ******                   
 
-### dtbToolCM support dt-tag & dtb v2(https://github.com/CyanogenMod/android_device_qcom_common/tree/cm-11.0/dtbtool):
+	This image is built using NON-standard mkbootimg!                       
+	BASE is 0x001fff00
+	KERNEL_OFFSET is 0x00408100
+	RAMDISK_OFFSET is 0x00100100
+	SECOND_OFFSET is 0x00d00100
 
- 	dtbToolCM -s 2048 -d "htc,project-id = <" -o arch/arm/boot/dt.img -p scripts/dtc/ arch/arm/boot/
+	You can modify mkbootimg.c with the above value(s)                      
 
+	****** WARNING ******* WARNING ******* WARNING ******                   
+
+	  kernel         : zImage
+	  ramdisk        : ramdisk
+	  page size      : 2048
+	  kernel size    : 6597520
+	  ramdisk size   : 3141533
+	  base           : 0x001fff00
+	  kernel offset  : 0x00408100
+	  ramdisk offset : 0x00100100
+	  second_offset  : 0x00d00100
+	  tags offset    : 0x00000100
+	  cmd line       : vmalloc=384M mem=2044m@0x200000 psci=enable mmcparts=mmcblk0:p1(vrl),p2(vrl_backup),p7(modemnvm_factory),p18(splash),p22(dfx),p23(modemnvm_backup),p24(modemnvm_img),p25(modemnvm_system),p26(modem),p27(modem_dsp),p28(modem_om),p29(modemnvm_update),p30(3rdmodem),p31(3rdmodemnvm),p32(3rdmodemnvmbkp)
+
+	ramdisk is gzip format.
+	Unpack completed.
+
+	root@android:/data/local/tmp/mkbootimg_tools-master/ARM #
+
+### Repack Boot.img or Recovery.img:
+	root@android:/data/local/tmp/mkbootimg_tools-master # ./mkboot recoveryfolder recovery_stock.img
+	mkbootimg from recoveryfolder/img_info.
+	  kernel         : zImage
+	  ramdisk        : new_ramdisk.gz
+	  page size      : 2048
+	  kernel size    : 6597520
+	  ramdisk size   : 3142833
+	  base           : 0x001fff00
+	  kernel offset  : 0x00408100
+	  ramdisk offset : 0x00100100
+	  tags offset    : 0x00000100
+	  cmd line       : vmalloc=384M mem=2044m@0x200000 psci=enable mmcparts=mmcblk0:p1(vrl),p2(vrl_backup),p7(modemnvm_factory),p18(splash),p22(dfx),p23(modemnvm_backup),p24(modemnvm_img),p25(modemnvm_system),p26(modem),p27(modem_dsp),p28(modem_om),p29(modemnvm_update),p30(3rdmodem),p31(3rdmodemnvm),p32(3rdmodemnvmbkp)
+	Kernel size: 6597520, new ramdisk size: 3142833, recovery_stock.img: 9744384.
+	recovery_stock.img has been created.
+	...
+	root@android:/data/local/tmp/mkbootimg_tools-master #
