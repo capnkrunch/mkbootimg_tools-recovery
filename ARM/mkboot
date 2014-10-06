@@ -24,6 +24,7 @@ toolpath=$(readlink -f $0)
 tooldir=$(dirname $toolpath)
 mkbootimg=$tooldir/mkbootimg
 mkbootfs=$tooldir/mkbootfs
+mkimage=$tooldir/mkimage # MediaTek Device
 busybox=$(command -v busybox)
 od=$tooldir/od
 gzip=$tooldir/gzip
@@ -132,8 +133,7 @@ if [ ! -z $mkboot_from_dir ]; then
     fi
     [ -z $dtb_size ] && dtb_size=0
     if [ -d $ramdisk ]; then
-	compression_type=$($file -m $magic ./ramdisk.* | $busybox cut -d: -f2 | $busybox cut -d" " -f2)
-	
+	compression_type=$($file -m $magic ./*ramdisk.* | $busybox cut -d: -f2 | $busybox cut -d" " -f2)
 	compression_ext=$compression_type
 	case $compression_type in
 		gzip) compression_warning=$compression_type; compression_repack=$gzip;;
@@ -147,36 +147,67 @@ if [ ! -z $mkboot_from_dir ]; then
 		pout "This tool currently does not support $compression_type."
 		pout "\n****** HAZARD ******* HAZARD ******* HAZARD ******\n"
 		exit
-	fi	
-	if [ $compression_type != "gzip" ]; then
-		if [ $compression_type != "lzma" ]; then
-			if [ $compression_type != "lz4" ]; then
-				if [ $compression_type != "xz" ]; then
-					pout "\nRamdisk is unknown format. Can't repack ramdisk."
-					exit 0
+	fi
+	if [ ! -f ./tekramdisk.* ]; then
+		if [ $compression_type != "gzip" ]; then
+			if [ $compression_type != "lzma" ]; then
+				if [ $compression_type != "lz4" ]; then
+					if [ $compression_type != "xz" ]; then
+						pout "\nRamdisk is unknown format. Can't repack ramdisk."
+						exit 0
+					else
+						# XZ
+						$mkbootfs $ramdisk | $compression_repack > new_ramdisk.$compression_ext
+						ramdisk=new_ramdisk.$compression_ext
+						ramdisk_size=$($busybox stat -c "%s" $ramdisk)
+					fi
 				else
-					# XZ
+					# LZ4
 					$mkbootfs $ramdisk | $compression_repack > new_ramdisk.$compression_ext
 					ramdisk=new_ramdisk.$compression_ext
 					ramdisk_size=$($busybox stat -c "%s" $ramdisk)
 				fi
 			else
-				# LZ4
+				# LZMA using xz binary
 				$mkbootfs $ramdisk | $compression_repack > new_ramdisk.$compression_ext
 				ramdisk=new_ramdisk.$compression_ext
 				ramdisk_size=$($busybox stat -c "%s" $ramdisk)
 			fi
 		else
-			# LZMA using xz binary
+			# GZIP
 			$mkbootfs $ramdisk | $compression_repack > new_ramdisk.$compression_ext
 			ramdisk=new_ramdisk.$compression_ext
 			ramdisk_size=$($busybox stat -c "%s" $ramdisk)
 		fi
 	else
-		# GZIP
-		$mkbootfs $ramdisk | $compression_repack > new_ramdisk.$compression_ext
-		ramdisk=new_ramdisk.$compression_ext
-		ramdisk_size=$($busybox stat -c "%s" $ramdisk)
+		$grep ROOTFS ./tekramdisk.* 2>/dev/null
+		rootfs=$?
+		if [ $rootfs -eq 1 ]; then
+			if [ $compression_type == "gzip" ]; then
+				# MediaTek GZIP / Boot Header
+				$mkbootfs $ramdisk | $compression_repack > new_ramdisk.$compression_ext
+				ramdisk=new_ramdisk.$compression_ext
+				$mkimage $ramdisk ROOTFS > new_ramdisk.$compression_ext'.img'
+				ramdisk=new_ramdisk.$compression_ext'.img'
+				ramdisk_size=$($busybox stat -c "%s" $ramdisk)
+				$busybox rm -f ./new_ramdisk.$compression_ext
+			fi
+		fi
+		$grep RECOVERY ./tekramdisk.* 2>/dev/null
+		rootfs=$?
+		if [ $rootfs -eq 1 ]; then
+			if [ $compression_type == "lz4" ]; then
+				# MediaTek LZ4 / Recovery Header
+				$mkbootfs $ramdisk | $compression_repack > new_ramdisk.$compression_ext
+				ramdisk=new_ramdisk.$compression_ext
+				$mkimage $ramdisk RECOVERY > new_ramdisk.$compression_ext'.img'
+				ramdisk=new_ramdisk.$compression_ext'.img'
+				ramdisk_size=$($busybox stat -c "%s" $ramdisk)
+				$busybox rm -f ./new_ramdisk.$compression_ext
+			fi
+
+
+		fi
 	fi
     fi
     #cd $unpacked_dir
@@ -354,7 +385,31 @@ ramdisk_offset=$ramdisk_offset\ntags_offset=$tags_offset\ncmd_line=\"$cmd_line\"
 $busybox mkdir ramdisk
 cd ramdisk
 
-compression_type=$($file -m $magic ../ramdisk.gz | $busybox cut -d: -f2 | $busybox cut -d" " -f2)
+#########################################################
+# BELOW SECTION HANDLES MEDIATEK RAMDISK
+
+$busybox dd bs=512 skip=1 if=../ramdisk.gz of=../tekramdisk.gz 2>/dev/null # Remove Header to verify file integrity
+tekram_type=$($file -m $magic ../tekramdisk.gz | $busybox cut -d: -f2 | $busybox cut -d" " -f2)
+if [ $tekram_type != "gzip" ]; then
+	if [ $tekram_type != "lz4" ]; then
+		$busybox rm -f ../tekramdisk.gz
+	else
+		$busybox mv -f ../ramdisk.gz ../temp.gz
+	fi
+else
+	$busybox mv -f ../ramdisk.gz ../temp.gz
+fi
+
+# ABOVE SECTION HANDLES MEDIATEK RAMDISK
+#########################################################
+
+if [ -f "../tekramdisk.gz" ]; then
+	ramdiskfile="../tekramdisk.gz"
+else
+	ramdiskfile="../ramdisk.gz"
+fi
+
+compression_type=$($file -m $magic $ramdiskfile | $busybox cut -d: -f2 | $busybox cut -d" " -f2)
 compression_warning=$compression_type
 
 case $compression_type in
@@ -364,7 +419,7 @@ case $compression_type in
 	lz4) compression_ext=lz4; decomp_ramdisk="$lz4 -d"; extra="< ../ramdisk.cpio";;
 esac;
 
-if [[ $compression_ext != "lz4" ]]; then
+if [ $compression_ext != "lz4" ]; then
 	decomp_ramdisk="$compression_type -d -c"
 fi
 decomp_ramdisk2="$cpio -i -d -m --no-absolute-filenames"
@@ -376,15 +431,19 @@ if [ -z $compression_ext ]; then
 	pout "\n****** HAZARD ******* HAZARD ******* HAZARD ******\n"
 	exit
 fi
-
-$busybox mv ../ramdisk.gz ../ramdisk.$compression_ext # This is simply to remind the user if they view the folder afterwards
+if [ $ramdiskfile == "../tekramdisk.gz" ]; then
+	$busybox mv $ramdiskfile ../tekramdisk.$compression_ext # This is simply to remind the user if they view the folder afterwards
+else
+	$busybox mv $ramdiskfile ../ramdisk.$compression_ext # This is simply to remind the user if they view the folder afterwards
+fi
 pout "\nRamdisk is $compression_warning format."
-$decomp_ramdisk "../ramdisk.$compression_ext" | $decomp_ramdisk2 $extra
+if [ $ramdiskfile == "../ramdisk.$compression_ext" ]; then
+	$decomp_ramdisk "../ramdisk.$compression_ext" | $decomp_ramdisk2 $extra
+else
+	$decomp_ramdisk "../tekramdisk.$compression_ext" | $decomp_ramdisk2 $extra
+fi
 
 #Unpack Finish to exit.
 pout "Unpack completed.\n"
 exit
-
-
-
 
