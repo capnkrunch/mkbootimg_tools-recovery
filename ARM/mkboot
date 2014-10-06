@@ -196,7 +196,7 @@ if [ ! -z $mkboot_from_dir ]; then
 		$grep ROOTFS ./temp.* &>/dev/null
 		rootfs=$?
 		if [ $rootfs -eq 0 ]; then
-			if [ $compression_type == "LZ4" ]; then
+			if [ $compression_type == "lz4" ]; then
 				# MediaTek LZ4 / Boot Header
 				$mkbootfs $ramdisk | $compression_repack > new_ramdisk.$compression_ext
 				ramdisk=new_ramdisk.$compression_ext
