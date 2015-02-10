@@ -38,6 +38,7 @@ file=$tooldir/file
 old_bootimg=true
 C_OUT="\033[0;1m"
 C_ERR="\033[31;1m"
+C_CAUT="\033[33;1m"
 C_CLEAR="\033[0;0m"
 	
 pout() {
@@ -45,6 +46,9 @@ pout() {
 }
 perr() {
     $busybox printf "${C_ERR}${*}${C_CLEAR}\n"
+}
+pcaut() {
+    $busybox printf "${C_CAUT}${*}${C_CLEAR}\n"
 }
 clean()
 {
@@ -108,6 +112,18 @@ mkboot_img()
     boot_size=$($busybox stat -c "%s" $new_img)
     pout "\nKernel size: $kernel_size, new ramdisk size: $ramdisk_size, $($busybox basename $new_img): $boot_size."
     pout "\n$($busybox basename $new_img) has been created.\n"
+
+# Check if new build is larger than original
+# Give caution if it is to insure size is not larger than the partition
+# A courtesy warning
+if [[ "$image_size" -lt "$boot_size" ]]; then
+		beefed_up=$(( $boot_size - $image_size ))
+		pcaut "\n****** CAUTION ******* CAUTION ******* CAUTION ******"
+		pout "\n$($busybox basename $new_img) is $beefed_up bytes larger than"
+		pout "the original build! Make sure this new"
+		pout "size is not larger than the actual partition!"
+		pcaut "\n****** CAUTION ******* CAUTION ******* CAUTION ******\n"
+fi
 }
 
 #decide action
@@ -399,6 +415,11 @@ print_info
 $busybox printf "kernel=zImage\nramdisk=ramdisk\n${dt_name}page_size=$page_size\n\
 kernel_size=$kernel_size\nramdisk_size=$ramdisk_size\n${dt_size}base_addr=$base_addr\nkernel_offset=$kernel_offset\n\
 ramdisk_offset=$ramdisk_offset\nsecond_offset=$second_offset\ntags_offset=$tags_offset\ncmd_line=\"$cmd_line\"\n" > img_info
+
+# Include original image size in bytes to img_info
+image_size=$($busybox stat -c "%s" '../'$1)
+$busybox printf "image_size=$image_size" >> img_info
+
 $busybox mkdir ramdisk
 cd ramdisk
 
