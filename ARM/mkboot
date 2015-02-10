@@ -16,7 +16,7 @@
 #original author: xiaolu
 #heavily modified by: Modding.MyMind
 
-#set -x # for debugging
+set -x # for debugging
 
 trap "clean" 2 3 4
 workdir=$(pwd)
@@ -24,12 +24,12 @@ toolpath=$(readlink -f $0)
 tooldir=$(dirname $toolpath)
 mkbootimg=$tooldir/mkbootimg
 mkbootfs=$tooldir/mkbootfs
-mkimage=$tooldir/mkimage # MediaTek Device
+mkimage=$tooldir/mkimage # MediaTek Device - Append Header
 busybox=$(command -v busybox)
 od=$tooldir/od
 gzip=$tooldir/gzip
 lz4=$tooldir/lz4
-lzma=$tooldir/lzma
+lzma=$tooldir/lzma # Deprecated but will hold on to it for now
 xz=$tooldir/xz # Also used for lzma compression
 grep=$tooldir/grep
 cpio=$tooldir/cpio
@@ -62,7 +62,7 @@ usage()
 {
     pout "<Unpack and repack boot.img tool>"
     pout "----------------------------------------------------------------------"
-    pout "Not enough parameters or parameter error!"
+    perr "Not enough parameters or parameter error!"
     pout "unpack boot.img & decompress ramdisk：\n    $($busybox basename $0) [img] [output dir]"
     pout "    $($busybox basename $0) boot.img boot20130905"
     pout "Use the unpacked directory repack boot.img(img_info)：\n    $($busybox basename $0) [unpacked dir] [newbootfile]"
@@ -142,10 +142,10 @@ if [ ! -z $mkboot_from_dir ]; then
 		lz4) compression_warning=$compression_type; compression_repack="$lz4 -l";;
 	esac;
 	if [ -z $compression_warning ]; then
-		pout "\n****** HAZARD ******* HAZARD ******* HAZARD ******"
+		perr "\n****** HAZARD ******* HAZARD ******* HAZARD ******"
 		pout "\nRamdisk is $compression_type format. Can't repack ramdisk."
 		pout "This tool currently does not support $compression_type."
-		pout "\n****** HAZARD ******* HAZARD ******* HAZARD ******\n"
+		perr "\n****** HAZARD ******* HAZARD ******* HAZARD ******\n"
 		exit
 	fi
 	if [ ! -f ./tekramdisk.* ]; then
@@ -153,7 +153,7 @@ if [ ! -z $mkboot_from_dir ]; then
 			if [ $compression_type != "lzma" ]; then
 				if [ $compression_type != "lz4" ]; then
 					if [ $compression_type != "xz" ]; then
-						pout "\nRamdisk is unknown format. Can't repack ramdisk."
+						perr "\nERROR: Ramdisk is unknown format. Can't repack ramdisk."
 						exit 0
 					else
 						# XZ
@@ -180,9 +180,7 @@ if [ ! -z $mkboot_from_dir ]; then
 			ramdisk_size=$($busybox stat -c "%s" $ramdisk)
 		fi
 	else
-		$grep ROOTFS ./temp.* &>/dev/null
-		rootfs=$?
-		if [ $rootfs -eq 0 ]; then
+		if [ $MTK_HEADER == "ROOTFS" ]; then
 			if [ $compression_type == "gzip" ]; then
 				# MediaTek GZIP / Boot Header
 				$mkbootfs $ramdisk | $compression_repack > new_ramdisk.$compression_ext
@@ -191,12 +189,7 @@ if [ ! -z $mkboot_from_dir ]; then
 				ramdisk=new_ramdisk.$compression_ext'.img'
 				ramdisk_size=$($busybox stat -c "%s" $ramdisk)
 				$busybox rm -f ./new_ramdisk.$compression_ext
-			fi
-		fi
-		$grep ROOTFS ./temp.* &>/dev/null
-		rootfs=$?
-		if [ $rootfs -eq 0 ]; then
-			if [ $compression_type == "lz4" ]; then
+			elif [ $compression_type == "lz4" ]; then
 				# MediaTek LZ4 / Boot Header
 				$mkbootfs $ramdisk | $compression_repack > new_ramdisk.$compression_ext
 				ramdisk=new_ramdisk.$compression_ext
@@ -206,9 +199,8 @@ if [ ! -z $mkboot_from_dir ]; then
 				$busybox rm -f ./new_ramdisk.$compression_ext
 			fi
 		fi
-		$grep RECOVERY ./temp.* &>/dev/null
-		rootfs=$?
-		if [ $rootfs -eq 0 ]; then
+
+		if [ $MTK_HEADER == "RECOVERY" ]; then
 			if [ $compression_type == "gzip" ]; then
 				# MediaTek GZIP / Recovery Header
 				$mkbootfs $ramdisk | $compression_repack > new_ramdisk.$compression_ext
@@ -217,12 +209,7 @@ if [ ! -z $mkboot_from_dir ]; then
 				ramdisk=new_ramdisk.$compression_ext'.img'
 				ramdisk_size=$($busybox stat -c "%s" $ramdisk)
 				$busybox rm -f ./new_ramdisk.$compression_ext
-			fi
-		fi
-		$grep RECOVERY ./temp.* &>/dev/null
-		rootfs=$?
-		if [ $rootfs -eq 0 ]; then
-			if [ $compression_type == "lz4" ]; then
+			elif [ $compression_type == "lz4" ]; then
 				# MediaTek LZ4 / Recovery Header
 				$mkbootfs $ramdisk | $compression_repack > new_ramdisk.$compression_ext
 				ramdisk=new_ramdisk.$compression_ext
@@ -231,6 +218,8 @@ if [ ! -z $mkboot_from_dir ]; then
 				ramdisk_size=$($busybox stat -c "%s" $ramdisk)
 				$busybox rm -f ./new_ramdisk.$compression_ext
 			fi
+		else
+			perr "ERROR: Could not compress the ramdisk! Could not append MTK Header!\n"
 		fi
 	fi
     fi
@@ -347,7 +336,7 @@ tags_offset=$($busybox printf "0x%08x" $tags_offset_ns)
 
 # Below are the known offsets for non standard mkbootimg.c
 if [[ ! -z $kernel_offset_warning ]] || [[ ! -z $ramdisk_offset_warning ]] || [[ ! -z $second_offset_warning ]]; then
-	pout "****** WARNING ******* WARNING ******* WARNING ******\n"
+	perr "****** WARNING ******* WARNING ******* WARNING ******\n"
 	pout "This image is built using NON-standard mkbootimg!\n"
 fi
 if [ ! -z $base_warning ]; then
@@ -364,7 +353,7 @@ if [ ! -z $second_offset_warning ]; then
 fi
 if [[ ! -z $kernel_offset_warning ]] || [[ ! -z $ramdisk_offset_warning ]] || [[ ! -z $second_offset_warning ]]; then
 	pout "\nYou can modify mkbootimg.c with the above value(s)"
-	pout "\n****** WARNING ******* WARNING ******* WARNING ******\n"
+	perr "\n****** WARNING ******* WARNING ******* WARNING ******\n"
 fi
 
 # ABOVE SECTION HANDLES NON STANDARD IMAGES
@@ -412,7 +401,7 @@ cd ramdisk
 #########################################################
 # BELOW SECTION HANDLES MEDIATEK RAMDISK
 
-$busybox dd bs=512 skip=1 if=../ramdisk.gz of=../tekramdisk.gz 2>/dev/null # Remove Header to verify file integrity
+MTKFILE () {
 tekram_type=$($file -m $magic ../tekramdisk.gz | $busybox cut -d: -f2 | $busybox cut -d" " -f2)
 if [ $tekram_type != "gzip" ]; then
 	if [ $tekram_type != "lz4" ]; then
@@ -422,6 +411,21 @@ if [ $tekram_type != "gzip" ]; then
 	fi
 else
 	$busybox mv -f ../ramdisk.gz ../temp.gz
+fi
+}
+
+tekramdisk_offset=$($grep -abo ROOTFS ../ramdisk.gz | $busybox cut -f 1 -d :)
+if [[ "$tekramdisk_offset" -eq 8 ]]; then
+	$busybox dd bs=512 skip=1 if=../ramdisk.gz of=../tekramdisk.gz 2>/dev/null # Remove Header to verify file integrity
+	$busybox printf "MTK_HEADER=ROOTFS" >> ../img_info
+	MTKFILE
+fi
+
+tekramdisk_offset=$($grep -abo RECOVERY ../ramdisk.gz | $busybox cut -f 1 -d :)
+if [[ "$tekramdisk_offset" -eq 8 ]]; then
+	$busybox dd bs=512 skip=1 if=../ramdisk.gz of=../tekramdisk.gz 2>/dev/null # Remove Header to verify file integrity
+	$busybox printf "MTK_HEADER=RECOVERY" >> ../img_info
+	MTKFILE
 fi
 
 # ABOVE SECTION HANDLES MEDIATEK RAMDISK
@@ -449,10 +453,10 @@ fi
 decomp_ramdisk2="$cpio -i -d -m --no-absolute-filenames"
 
 if [ -z $compression_ext ]; then
-	pout "\n****** HAZARD ******* HAZARD ******* HAZARD ******"
+	perr "\n****** HAZARD ******* HAZARD ******* HAZARD ******"
 	pout "\nRamdisk is $compression_warning format. Can't unpack ramdisk."
 	pout "This tool currently does not support $compression_warning."
-	pout "\n****** HAZARD ******* HAZARD ******* HAZARD ******\n"
+	perr "\n****** HAZARD ******* HAZARD ******* HAZARD ******\n"
 	exit
 fi
 if [ $ramdiskfile == "../tekramdisk.gz" ]; then
