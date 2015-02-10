@@ -83,7 +83,7 @@ print_info()
     pout "  base           : $base_addr"
     pout "  kernel offset  : $kernel_offset"
     pout "  ramdisk offset : $ramdisk_offset"
-    [ -z $second_offset ] || pout "  second_offset  : $second_offset"
+    [ -z $second_offset ] || pout "  second offset  : $second_offset"
     pout "  tags offset    : $tags_offset"
     [ $dtb_size -gt 0 ] && pout "  dtb img        : $dt"
     pout "  cmd line       : $cmd_line"
@@ -99,8 +99,8 @@ mkboot_img()
         second_offset="--second_offset ${second_offset}"
     fi
     $mkbootimg --kernel $kernel --ramdisk $ramdisk \
-        --base $base_addr --ramdisk_offset $ramdisk_offset \
-        $second_offset \
+        --base $base_addr --kernel_offset $kernel_offset \
+        --ramdisk_offset $ramdisk_offset $second_offset \
         --tags_offset $tags_offset --cmdline "$cmd_line" \
         --pagesize $page_size $dtb -o $new_img 2>/dev/null || error=1
     [ $error -eq 1 ] && return $error
