@@ -64,13 +64,12 @@ fi
 
 usage()
 {
-    pout "<Unpack and repack boot.img tool>"
-    pout "----------------------------------------------------------------------"
-    perr "Not enough parameters or parameter error!"
-    pout "unpack boot.img & decompress ramdisk：\n    $($busybox basename $0) [img] [output dir]"
-    pout "    $($busybox basename $0) boot.img boot20130905"
-    pout "Use the unpacked directory repack boot.img(img_info)：\n    $($busybox basename $0) [unpacked dir] [newbootfile]"
-    pout "    $($busybox basename $0) boot20130905 newboot.img"
+    pcaut "\n<Unpack and Repack Image Tool>"
+    perr "Not enough parameters or parameter error!\n"
+    pout "Unpack Image & Decompress Ramdisk <Usage>: \n    $($busybox basename $0) [image] [output dir]"
+    pout "    $($busybox basename $0) boot.img project_folder\n"
+    pout "Repack Image & Compress Ramdisk <Usage>: \n    $($busybox basename $0) [unpacked dir] [new image]"
+    pout "    $($busybox basename $0) project_folder newboot.img\n"
     clean
 }
 
