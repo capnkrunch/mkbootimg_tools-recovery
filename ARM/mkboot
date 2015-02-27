@@ -59,7 +59,7 @@ clean()
 
 # Check for busybox
 if [ -z $busybox ]; then
-	clear; pout "Busybox is NOT installed!\nThis may cause issues with the script!\nUse at your own risk or install busybox!"; sleep 3
+	clear; pcaut "Busybox is NOT installed!\nThis may cause issues with the script!\nUse at your own peril or install busybox!"; sleep 3
 fi
 
 usage()
@@ -142,12 +142,12 @@ if [ ! -z $mkboot_from_dir ]; then
     new_img=$2
     cd $unpacked_dir
     if [ ! -s img_info ]; then
-        pout "Missing img_info file! Can't rebuild $2."
+        perr "Missing img_info file! Can't rebuild $2."
         clean
     fi 
     eval $(cat img_info)
     if [ -z $kernel ] || [ -z $ramdisk ] || [ -z $base_addr ]; then
-        pout "Lacking parameters in img_info."
+        perr "Lacking parameters in img_info."
         clean
     fi
     [ -z $dtb_size ] && dtb_size=0
