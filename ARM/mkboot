@@ -300,12 +300,12 @@ tags_offset=$((tags_addr-base_addr))
 #########################################################
 # BELOW SECTION HANDLES NON STANDARD IMAGES
 
-non_standard_base=$((tags_addr-0x00000100)) # Need this to get the TRUE Base Address
+non_standard_base=$((tags_addr-tags_offset)) # Need this to get the TRUE Base Address
 non_standard_base_addr=$($busybox printf "0x%08x" $non_standard_base)
 base_addr_verify=$($busybox printf "0x%08x" $base_addr)
 base_addr=$($busybox printf "0x%08x" $base_addr)
 
-if [ $base_addr == $non_standard_base ]; then
+if [ $base_addr == $non_standard_base_addr ]; then
 	base_addr=$($busybox printf "0x%08x" $base_addr)
 else
 	base_addr=$($busybox printf "0x%08x" $non_standard_base_addr)
@@ -347,14 +347,20 @@ else
 	second_offset_warning=$second_offset_ns
 fi
 
-if [ $base_addr_verify != $non_standard_base_addr ]; then
+if [ $non_standard_base -eq $tags_offset_s ]; then
+	tags_offset=$($busybox printf "0x%08x" $tags_offset)
+else
+	tags_offset_ns=$($busybox printf "0x%08x" $tags_offset_ns)
+	tags_offset=$($busybox printf "0x%08x" $tags_offset_ns)
+	tags_offset_warning=$tags_offset_ns
+fi
+
+if [ $base_addr_verify != 0x10000000 ]; then
 	base_warning=$non_standard_base_addr
 fi
 
-tags_offset=$($busybox printf "0x%08x" $tags_offset_ns)
-
 # Below are the known offsets for non standard mkbootimg.c
-if [[ ! -z $kernel_offset_warning ]] || [[ ! -z $ramdisk_offset_warning ]] || [[ ! -z $second_offset_warning ]]; then
+if [[ ! -z $base_warning ]] || [[ ! -z $kernel_offset_warning ]] || [[ ! -z $ramdisk_offset_warning ]] || [[ ! -z $second_offset_warning ]] || [[ ! -z $tags_offset_warning ]]; then
 	perr "****** WARNING ******* WARNING ******* WARNING ******\n"
 	pout "This image is built using NON-standard mkbootimg!\n"
 fi
@@ -370,7 +376,10 @@ fi
 if [ ! -z $second_offset_warning ]; then
 	pout "SECOND_OFFSET is $second_offset_ns"
 fi
-if [[ ! -z $kernel_offset_warning ]] || [[ ! -z $ramdisk_offset_warning ]] || [[ ! -z $second_offset_warning ]]; then
+if [ ! -z $tags_offset_warning ]; then
+	pout "TAGS_OFFSET is $tags_offset_ns"
+fi
+if [[ ! -z $base_warning ]] || [[ ! -z $kernel_offset_warning ]] || [[ ! -z $ramdisk_offset_warning ]] || [[ ! -z $second_offset_warning ]] || [[ ! -z $tags_offset_warning ]] ; then
 	pout "\nYou can modify mkbootimg.c with the above value(s)"
 	perr "\n****** WARNING ******* WARNING ******* WARNING ******\n"
 fi
