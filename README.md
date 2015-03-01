@@ -2,6 +2,8 @@ Original Source Modified By:
 Modding.MyMind XDA \
 ModdingMyMind AF
 
+Tested with Busybox 1.23.1-Stericson (Recommended)
+
 Built to be used on Arm devices.
 
 Move the bash binary to /system/xbin.

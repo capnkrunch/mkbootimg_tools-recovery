@@ -83,11 +83,31 @@ print_info()
     [ ! -z $second_size ] && [ $second_size -gt 0 ] && \
         pout "  second_size    : $second_size"
     [ $dtb_size -gt 0 ] && pout "  dtb size       : $dtb_size"
+if [ ! -z $base_warning ]; then
+    pcaut "  base           : $base_addr   (Non Standard)"
+else
     pout "  base           : $base_addr"
+fi
+if [ ! -z $kernel_offset_warning ]; then
+    pcaut "  kernel offset  : $kernel_offset   (Non Standard)"
+else
     pout "  kernel offset  : $kernel_offset"
+fi
+if [ ! -z $ramdisk_offset_warning ]; then
+    pcaut "  ramdisk offset : $ramdisk_offset   (Non Standard)"
+else
     pout "  ramdisk offset : $ramdisk_offset"
+fi
+if [ ! -z $second_offset_warning ]; then
+    [ -z $second_offset ] || pcaut "  second offset  : $second_offset   (Non Standard)"
+else
     [ -z $second_offset ] || pout "  second offset  : $second_offset"
+fi
+if [ ! -z $tags_offset_warning ]; then
+    pcaut "  tags offset    : $tags_offset   (Non Standard)"
+else
     pout "  tags offset    : $tags_offset"
+fi
     [ $dtb_size -gt 0 ] && pout "  dtb img        : $dt"
     pout "  cmd line       : $cmd_line"
 }
