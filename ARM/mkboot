@@ -306,10 +306,10 @@ tags_addr=0x$($od -X $bootimg | $busybox awk 'NR==3 {print $2;exit}' | $busybox 
 
 kernel_size=$($od -D $bootimg | $busybox awk 'NR==1 {print $4;exit}' | $busybox awk '{x=$0+0;print x}' | $busybox sed 's/ //g')
 base_addr=0x$($od -x $bootimg | $busybox awk 'NR==1 {print $9;exit}' | $busybox sed 's/ //g')0000
-ramdisk_size=$($od -D $bootimg | $busybox awk 'NR==2 {print $2;exit}' | $busybox awk '{x=$0+0;print x}' | $busybox sed 's/ //g')
-second_size=$($od -D $bootimg | $busybox awk 'NR==2 {print $4;exit}' | $busybox awk '{x=$0+0;print x}' | $busybox sed 's/ //g')
-page_size=$($od -D $bootimg | $busybox awk 'NR==3 {print $3;exit}' | $busybox awk '{x=$0+0;print x}' | $busybox sed 's/ //g')
-dtb_size=$($od -D $bootimg | $busybox awk 'NR==3 {print $4;exit}' | $busybox awk '{x=$0+0;print x}' | $busybox sed 's/ //g')
+ramdisk_size=$($od -D $bootimg | $busybox awk 'NR==2 {print $2;exit}' | $busybox sed 's/^0*//g' | $busybox sed 's/ //g')
+second_size=$($od -D $bootimg | $busybox awk 'NR==2 {print $4;exit}' | $busybox sed 's/^0*//g' | $busybox sed 's/ //g')
+page_size=$($od -D $bootimg | $busybox awk 'NR==3 {print $3;exit}' | $busybox sed 's/^0*//g' | $busybox sed 's/ //g')
+dtb_size=$($od -D $bootimg | $busybox awk 'NR==3 {print $4;exit}' | $busybox sed 's/^0*//g' | $busybox sed 's/ //g')
 cmd_line=$($od -a boot.img | $busybox awk 'BEGIN {FS="   "; OFS=""}; NR>4 {$1="";print	 $0}; NR==21 {exit}' | $busybox sed 's/.//;s/ nul//' | $busybox awk 'BEGIN {ORS=""}; {print}')
 
 kernel_offset=$((kernel_addr-base_addr))
